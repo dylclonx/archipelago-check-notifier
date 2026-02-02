@@ -21,13 +21,9 @@
     "typescript": "^5.2.2"
   },
   "scripts": {
-    "start": "ts-node index.ts",
-    "test": "ts-node test/unit-tests.ts",
-    "build:commonjs": "rimraf lib && tsc --target es5 --outDir lib --module commonjs --declaration",
-    "build:es": "rimraf es && tsc --target es6 --outDir es --module es6",
-    "build": "npm run build:commonjs && npm run build:es",
-    "ts": "ts-node src/",
-    "prepublishOnly": "npm run build"
+  "build": "tsc",
+  "start": "node dist/index.js",
+  "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
