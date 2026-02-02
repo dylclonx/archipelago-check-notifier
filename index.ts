@@ -5,7 +5,6 @@ import Monitors from './src/utils/monitors'
 import { Connection } from './src/classes/connection'
 
 const client = new Client({ intents: ['Guilds'] })
-const CONFIG = require('./config/config.json')
 
 client.on(Events.ClientReady, async () => {
   Database.migrate()
@@ -18,10 +17,10 @@ client.on(Events.ClientReady, async () => {
 
 client.on(Events.InteractionCreate, async (interaction) => {
   switch (interaction.type) {
-    case InteractionType.ApplicationCommandAutocomplete: // Auto complete interaction
+    case InteractionType.ApplicationCommandAutocomplete:
       Commands.Autocomplete(interaction)
       break
-    case InteractionType.ApplicationCommand: // Slash command interaction
+    case InteractionType.ApplicationCommand:
       Commands.Execute(interaction)
       Database.createLog(interaction.guildId || '0', interaction.user.id, `Executed command ${interaction.commandName}`)
       break
@@ -29,17 +28,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
 })
 
 client.on(Events.GuildCreate, async (guild) => {
-  // Add the guild to the database
   await Database.createLog(guild.id, '0', 'Added to guild')
 
-  // Document to the logs channel
-  const channel = client.channels.cache.get(CONFIG.logs.channel) as TextBasedChannel
-  channel.send(`Added to guild ${guild.name}`)
+  if (process.env.LOG_CHANNEL) {
+    const channel = client.channels.cache.get(process.env.LOG_CHANNEL) as TextBasedChannel
+    channel?.send(`Added to guild ${guild.name}`)
+  }
 })
 
 client.on(Events.GuildDelete, async (guild) => {
-  // Remove the guild from the database
   await Database.createLog(guild.id, '0', 'Removed from guild')
 })
 
-client.login(CONFIG.token)
+client.login(process.env.DISCORD_TOKEN)
