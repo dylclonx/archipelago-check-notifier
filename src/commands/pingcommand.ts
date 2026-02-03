@@ -1,5 +1,5 @@
 import Command from '../classes/command'
-import { ApplicationCommandOption, ChatInputCommandInteraction } from 'discord.js'
+import { ApplicationCommandOption, ChatInputCommandInteraction, MessageFlags } from 'discord.js'
 
 export default class PingCommand extends Command {
   name = 'ping'
@@ -13,6 +13,6 @@ export default class PingCommand extends Command {
   }
 
   execute (interaction: ChatInputCommandInteraction) {
-    interaction.reply({ content: 'Pong!', ephemeral: true })
+    interaction.reply({ content: 'Pong!', flags: [MessageFlags.Ephemeral] })
   }
 }

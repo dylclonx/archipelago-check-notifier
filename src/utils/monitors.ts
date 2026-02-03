@@ -15,7 +15,8 @@ function make (data: MonitorData, client: DiscordClient): Promise<Monitor> {
       game: data.game,
       name: data.player,
       items_handling: ITEMS_HANDLING_FLAGS.REMOTE_ALL,
-      tags: ['IgnoreGame', 'Tracker', 'Monitor']
+      tags: ['IgnoreGame', 'Tracker', 'Monitor'],
+      version: { major: 0, minor: 5, build: 0 }
     }
 
     archi.connect(connectionInfo).then(() => {

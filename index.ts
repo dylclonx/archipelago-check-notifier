@@ -1,4 +1,4 @@
-import { Client, Events, InteractionType } from 'discord.js'
+import { Client, Events, InteractionType, MessageFlags } from 'discord.js'
 import Commands from './src/commands'
 import Database from './src/utils/database'
 import Monitors from './src/utils/monitors'
@@ -50,9 +50,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
     console.error('Interaction error:', err)
     if (interaction.type === InteractionType.ApplicationCommand) {
       if (interaction.replied || interaction.deferred) {
-        interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true }).catch(() => {})
+        interaction.followUp({ content: 'There was an error while executing this command!', flags: [MessageFlags.Ephemeral] }).catch(() => {})
       } else {
-        interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true }).catch(() => {})
+        interaction.reply({ content: 'There was an error while executing this command!', flags: [MessageFlags.Ephemeral] }).catch(() => {})
       }
     }
   }

@@ -1,5 +1,5 @@
 import Command from '../classes/command'
-import { ApplicationCommandOption, ApplicationCommandOptionType, AutocompleteInteraction, ChatInputCommandInteraction } from 'discord.js'
+import { ApplicationCommandOption, ApplicationCommandOptionType, AutocompleteInteraction, ChatInputCommandInteraction, MessageFlags } from 'discord.js'
 import Monitors from '../utils/monitors'
 
 export default class UnmonitorCommand extends Command {
@@ -20,12 +20,12 @@ export default class UnmonitorCommand extends Command {
 
     // Do not remove if there is no monitor
     if (!Monitors.has(uri)) {
-      interaction.reply({ content: `There is no active monitor on ${uri}.`, ephemeral: true })
+      interaction.reply({ content: `There is no active monitor on ${uri}.`, flags: [MessageFlags.Ephemeral] })
       return
     }
 
     Monitors.remove(uri)
-    interaction.reply({ content: `The tracker will no longer track ${uri}.`, ephemeral: true })
+    interaction.reply({ content: `The tracker will no longer track ${uri}.`, flags: [MessageFlags.Ephemeral] })
   }
 
   autocomplete (interaction: AutocompleteInteraction): void {

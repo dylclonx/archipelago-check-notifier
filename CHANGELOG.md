@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-02-02
+
+### Changed
+- Migrated ESLint from v8 to v9 to address security vulnerability (GHSA-p5wg-g6qr-c7cg).
+- Updated configuration to flat config format (`eslint.config.mjs`).
+- Updated `@typescript-eslint` plugins to v8.
+- Added `undici` override to v6.23.0+ to resolve GHSA-g9mf-h72j-4rw9.
+
+## [1.1.1] - 2026-02-02
+
+### Changed
+- Updated Archipelago protocol version to 0.5.0 to support modern servers (e.g., archipelago.gg).
+- Replaced deprecated `ephemeral: true` with `flags: [MessageFlags.Ephemeral]` for Discord interaction responses.
+
 ## [1.1.0] - 2026-02-02
 
 ### Added

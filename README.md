@@ -241,6 +241,12 @@ export default Database
 
 **Solution:** Update tsconfig.json to target ES2020 (see code modifications above).
 
+### "IncompatibleVersion" Error
+
+**Cause:** Archipelago server requires a newer protocol version than the client defaults to.
+
+**Solution:** This bot has been updated (v1.1.1+) to default to protocol version 0.5.0, which is compatible with `archipelago.gg` and most modern servers. Ensure you are using the latest version of the bot.
+
 ---
 
 ## Bot Commands

@@ -96,7 +96,8 @@ export default class Monitor {
       hostname: this.data.host,
       port: this.data.port,
       name: this.data.player,
-      items_handling: ITEMS_HANDLING_FLAGS.REMOTE_ALL
+      items_handling: ITEMS_HANDLING_FLAGS.REMOTE_ALL,
+      version: { major: 0, minor: 5, build: 0 }
     }).then(() => { this.isReconnecting = false }).catch(() => { setTimeout(() => { this.isReconnecting = false; this.onDisconnect() }, 300000) })
   }
 

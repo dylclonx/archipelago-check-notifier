@@ -1,5 +1,5 @@
 import Command from '../classes/command'
-import { ApplicationCommandOption, ApplicationCommandOptionType, ChannelType, ChatInputCommandInteraction } from 'discord.js'
+import { ApplicationCommandOption, ApplicationCommandOptionType, ChannelType, ChatInputCommandInteraction, MessageFlags } from 'discord.js'
 import MonitorData from '../classes/monitordata'
 import Monitors from '../utils/monitors'
 import Database from '../utils/database'
@@ -27,7 +27,7 @@ export default class MonitorCommand extends Command {
     // regex for domain or IP address - eg. archipelago.gg
     const hostRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/
     if (!hostRegex.test(host)) {
-      interaction.reply({ content: 'Invalid host name format. Please use domain name (e.g: archipelago.gg)', ephemeral: true })
+      interaction.reply({ content: 'Invalid host name format. Please use domain name (e.g: archipelago.gg)', flags: [MessageFlags.Ephemeral] })
       return false
     }
 
@@ -54,7 +54,7 @@ export default class MonitorCommand extends Command {
 
     // Only allow one monitor per host/port/player combo
     if (Monitors.has(`${monitorData.host}:${monitorData.port}`)) {
-      return interaction.reply({ content: 'Already monitoring that host!', ephemeral: true })
+      return interaction.reply({ content: 'Already monitoring that host!', flags: [MessageFlags.Ephemeral] })
     }
 
     // Send a message to the channel to confirm the monitor has been added.
@@ -62,7 +62,7 @@ export default class MonitorCommand extends Command {
     if (textChannel?.isTextBased()) {
       (textChannel as any).send('This monitor will now track Archipelago on this channel.').catch(console.error)
     } else {
-      return interaction.reply({ content: 'Could not find the specified channel in cache or it is not text-based.', ephemeral: true })
+      return interaction.reply({ content: 'Could not find the specified channel in cache or it is not text-based.', flags: [MessageFlags.Ephemeral] })
     }
 
     // Make the monitor and save it
@@ -70,9 +70,9 @@ export default class MonitorCommand extends Command {
       Database.makeConnection(monitorData)
     }).catch(err => {
       console.error('Failed to create monitor:', err)
-      interaction.followUp({ content: 'Failed to connect to Archipelago. Please check host and port.', ephemeral: true })
+      interaction.followUp({ content: 'Failed to connect to Archipelago. Please check host and port.', flags: [MessageFlags.Ephemeral] })
     })
 
-    interaction.reply({ content: `Now monitoring Archipelago on ${monitorData.host}:${monitorData.port}.`, ephemeral: true })
+    interaction.reply({ content: `Now monitoring Archipelago on ${monitorData.host}:${monitorData.port}.`, flags: [MessageFlags.Ephemeral] })
   }
 }
