@@ -260,6 +260,14 @@ Once deployed, the bot provides these slash commands:
     - `mention_completion` - @ for finishing goal (default: true)
     - `mention_hints` - @ for hints (default: true)
 - `/unmonitor` - Stop monitoring a session
+- `/link` - Link an Archipelago player name to a Discord user. Supports optional flags to override monitor defaults for that user:
+    - `mention_join_leave` - @ you for join/leave (default: false)
+    - `mention_item_finder` - @ you for finding items (default: true)
+    - `mention_item_receiver` - @ you for receiving items (default: true)
+    - `mention_completion` - @ you for finishing goal (default: true)
+    - `mention_hints` - @ you for hints (default: true)
+- `/unlink` - Remove a link
+- `/links` - Show all links in the server
 
 ---
 

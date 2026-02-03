@@ -35,10 +35,55 @@ async function migrate (): Promise<void> {
   if (!columnNames.includes('mention_hints')) {
     await pool.query('ALTER TABLE connections ADD COLUMN mention_hints TINYINT(1) DEFAULT 1')
   }
+
+  // Migration for 1.4.0 - Add mention flags to user_links
+  const [linkColumns]: any = await pool.query('SHOW COLUMNS FROM user_links')
+  const linkColumnNames = linkColumns.map((c: any) => c.Field)
+  if (!linkColumnNames.includes('mention_join_leave')) {
+    await pool.query('ALTER TABLE user_links ADD COLUMN mention_join_leave TINYINT(1) DEFAULT 0')
+  }
+  if (!linkColumnNames.includes('mention_item_finder')) {
+    await pool.query('ALTER TABLE user_links ADD COLUMN mention_item_finder TINYINT(1) DEFAULT 1')
+  }
+  if (!linkColumnNames.includes('mention_item_receiver')) {
+    await pool.query('ALTER TABLE user_links ADD COLUMN mention_item_receiver TINYINT(1) DEFAULT 1')
+  }
+  if (!linkColumnNames.includes('mention_completion')) {
+    await pool.query('ALTER TABLE user_links ADD COLUMN mention_completion TINYINT(1) DEFAULT 1')
+  }
+  if (!linkColumnNames.includes('mention_hints')) {
+    await pool.query('ALTER TABLE user_links ADD COLUMN mention_hints TINYINT(1) DEFAULT 1')
+  }
 }
 
-async function linkUser (guildId: string, archipelagoName: string, discordId: string) {
-  await pool.query('INSERT INTO user_links (guild_id, archipelago_name, discord_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE discord_id = ?', [guildId, archipelagoName, discordId, discordId])
+async function linkUser (guildId: string, archipelagoName: string, discordId: string, flags?: {
+  mention_join_leave?: boolean,
+  mention_item_finder?: boolean,
+  mention_item_receiver?: boolean,
+  mention_completion?: boolean,
+  mention_hints?: boolean
+}) {
+  const query = `
+    INSERT INTO user_links (guild_id, archipelago_name, discord_id, mention_join_leave, mention_item_finder, mention_item_receiver, mention_completion, mention_hints)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      discord_id = VALUES(discord_id),
+      mention_join_leave = VALUES(mention_join_leave),
+      mention_item_finder = VALUES(mention_item_finder),
+      mention_item_receiver = VALUES(mention_item_receiver),
+      mention_completion = VALUES(mention_completion),
+      mention_hints = VALUES(mention_hints)
+  `
+  await pool.query(query, [
+    guildId,
+    archipelagoName,
+    discordId,
+    flags?.mention_join_leave ?? false,
+    flags?.mention_item_finder ?? true,
+    flags?.mention_item_receiver ?? true,
+    flags?.mention_completion ?? true,
+    flags?.mention_hints ?? true
+  ])
 }
 
 async function unlinkUser (guildId: string, archipelagoName: string) {
@@ -46,8 +91,15 @@ async function unlinkUser (guildId: string, archipelagoName: string) {
 }
 
 async function getLinks (guildId: string): Promise<any[]> {
-  const [rows] = await pool.query('SELECT archipelago_name, discord_id FROM user_links WHERE guild_id = ?', [guildId])
-  return rows as any[]
+  const [rows] = await pool.query('SELECT * FROM user_links WHERE guild_id = ?', [guildId])
+  return (rows as any[]).map(row => ({
+    ...row,
+    mention_join_leave: !!row.mention_join_leave,
+    mention_item_finder: !!row.mention_item_finder,
+    mention_item_receiver: !!row.mention_item_receiver,
+    mention_completion: !!row.mention_completion,
+    mention_hints: !!row.mention_hints
+  }))
 }
 
 async function createLog (guildId: string, userId: string, action: string) {

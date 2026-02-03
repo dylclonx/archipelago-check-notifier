@@ -17,28 +17,29 @@ export default class Monitor {
     items: [] as string[]
   }
 
-  convertData (message: ItemSendJSONPacket | CollectJSONPacket | HintJSONPacket, linkMap: Map<string, string>) {
+  convertData (message: ItemSendJSONPacket | CollectJSONPacket | HintJSONPacket, linkMap: Map<string, any>) {
     return message.data.map((slot) => {
       switch (slot.type) {
         case 'player_id': {
           const playerId = parseInt(slot.text)
           const playerName = this.client.players.get(playerId)?.name
-          if (playerName && linkMap.has(playerName)) {
+          const link = playerName ? linkMap.get(playerName) : null
+          if (link) {
             let shouldMention = true
             if (message.type === 'ItemSend') {
               if (playerId === (message as any).receiving) {
-                shouldMention = this.data.mention_item_receiver
+                shouldMention = this.data.mention_item_receiver && link.mention_item_receiver
               } else {
-                shouldMention = this.data.mention_item_finder
+                shouldMention = this.data.mention_item_finder && link.mention_item_finder
               }
             } else if (message.type === 'Hint') {
-              shouldMention = this.data.mention_hints
+              shouldMention = this.data.mention_hints && link.mention_hints
             } else if (message.type === 'Collect') {
-              shouldMention = this.data.mention_item_finder
+              shouldMention = this.data.mention_item_finder && link.mention_item_finder
             }
 
             if (shouldMention) {
-              return `<@${linkMap.get(playerName)}>`
+              return `<@${link.discord_id}>`
             }
           }
           return `**${playerName}**`
@@ -157,12 +158,20 @@ export default class Monitor {
   // When a message is received from the server
   async onJSON (packet: PrintJSONPacket) {
     const links = await Database.getLinks(this.guild.id)
-    const linkMap = new Map<string, string>(links.map(l => [l.archipelago_name, l.discord_id]))
+    const linkMap = new Map<string, any>(links.map(l => [l.archipelago_name, l]))
 
-    const formatPlayer = (slot: number, mentionFlag: boolean = true) => {
+    const formatPlayer = (slot: number, monitorMentionFlag: boolean = true, flagName?: string) => {
       const playerName = this.client.players.get(slot)?.name
-      if (playerName && linkMap.has(playerName) && mentionFlag) {
-        return `<@${linkMap.get(playerName)}>`
+      const link = playerName ? linkMap.get(playerName) : null
+      if (link) {
+        let shouldMention = monitorMentionFlag
+        if (flagName && link[flagName] !== undefined) {
+          shouldMention = shouldMention && link[flagName]
+        }
+
+        if (shouldMention) {
+          return `<@${link.discord_id}>`
+        }
       }
       return `**${playerName}**`
     }
@@ -179,20 +188,20 @@ export default class Monitor {
         // Overrides for special join messages
         if (packet.tags.includes('Monitor')) return
         if (packet.tags.includes('IgnoreGame')) {
-          this.send(`A tracker for ${formatPlayer(packet.slot, this.data.mention_join_leave)} has joined the game!`)
+          this.send(`A tracker for ${formatPlayer(packet.slot, this.data.mention_join_leave, 'mention_join_leave')} has joined the game!`)
           return
         }
 
-        this.send(`${formatPlayer(packet.slot, this.data.mention_join_leave)} (${this.client.players.get(packet.slot)?.game}) joined the game!`)
+        this.send(`${formatPlayer(packet.slot, this.data.mention_join_leave, 'mention_join_leave')} (${this.client.players.get(packet.slot)?.game}) joined the game!`)
         break
       case 'Part':
-        this.send(`${formatPlayer(packet.slot, this.data.mention_join_leave)} (${this.client.players.get(packet.slot)?.game}) left the game!`)
+        this.send(`${formatPlayer(packet.slot, this.data.mention_join_leave, 'mention_join_leave')} (${this.client.players.get(packet.slot)?.game}) left the game!`)
         break
       case 'Goal':
-        this.send(`${formatPlayer(packet.slot, this.data.mention_completion)} has completed their goal!`)
+        this.send(`${formatPlayer(packet.slot, this.data.mention_completion, 'mention_completion')} has completed their goal!`)
         break
       case 'Release':
-        this.send(`${formatPlayer(packet.slot, this.data.mention_item_finder)} has released their remaining items!`)
+        this.send(`${formatPlayer(packet.slot, this.data.mention_item_finder, 'mention_item_finder')} has released their remaining items!`)
         break
     }
   }

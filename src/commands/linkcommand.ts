@@ -18,7 +18,12 @@ export default class LinkCommand extends Command {
       name: 'user',
       description: 'The Discord user to link (defaults to you)',
       required: false
-    }
+    },
+    { type: ApplicationCommandOptionType.Boolean, name: 'mention_join_leave', description: 'Whether to @ you for joining or leaving (default: false)', required: false },
+    { type: ApplicationCommandOptionType.Boolean, name: 'mention_item_finder', description: 'Whether to @ you when you find an item (default: true)', required: false },
+    { type: ApplicationCommandOptionType.Boolean, name: 'mention_item_receiver', description: 'Whether to @ you when you receive an item (default: true)', required: false },
+    { type: ApplicationCommandOptionType.Boolean, name: 'mention_completion', description: 'Whether to @ you when you complete your goal (default: true)', required: false },
+    { type: ApplicationCommandOptionType.Boolean, name: 'mention_hints', description: 'Whether to @ you when you are mentioned in a hint (default: true)', required: false }
   ]
 
   constructor (client: any) {
@@ -34,8 +39,16 @@ export default class LinkCommand extends Command {
     const player = interaction.options.getString('player', true)
     const user = interaction.options.getUser('user') || interaction.user
 
+    const flags = {
+      mention_join_leave: interaction.options.getBoolean('mention_join_leave') ?? false,
+      mention_item_finder: interaction.options.getBoolean('mention_item_finder') ?? true,
+      mention_item_receiver: interaction.options.getBoolean('mention_item_receiver') ?? true,
+      mention_completion: interaction.options.getBoolean('mention_completion') ?? true,
+      mention_hints: interaction.options.getBoolean('mention_hints') ?? true
+    }
+
     try {
-      await Database.linkUser(interaction.guildId, player, user.id)
+      await Database.linkUser(interaction.guildId, player, user.id, flags)
       interaction.reply({
         content: `Linked Archipelago player **${player}** to <@${user.id}>. Notifications involving this player will now mention them.`,
         flags: [MessageFlags.Ephemeral]

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-02-02
+
+### Added
+- Per-user mention preferences for linked players:
+    - Added optional mention flags to `/link` command (`mention_join_leave`, `mention_item_finder`, `mention_item_receiver`, `mention_completion`, `mention_hints`).
+    - User settings override monitor defaults (e.g., if a user disables join/leave mentions for themselves, they won't be @mentioned even if the monitor has them enabled).
+- Automatic database migration for `user_links` table to support new flag columns.
+
+### Changed
+- Refactored `Monitor` class to respect both monitor-level and user-level mention settings.
+
 ## [1.3.0] - 2026-02-02
 
 ### Added
