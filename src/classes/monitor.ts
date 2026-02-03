@@ -1,11 +1,11 @@
-import { EmbedBuilder, Guild, TextBasedChannel, Client as DiscordClient, GuildChannel } from 'discord.js'
+import { EmbedBuilder, Guild, Client as DiscordClient, GuildChannel } from 'discord.js'
 import { Client, CollectJSONPacket, HintJSONPacket, ITEMS_HANDLING_FLAGS, ItemSendJSONPacket, PrintJSONPacket, SERVER_PACKET_TYPE, SlotData } from 'archipelago.js'
 import MonitorData from './monitordata'
 import RandomHelper from '../utils/randohelper'
 
 export default class Monitor {
   client: Client<SlotData>
-  channel: TextBasedChannel
+  channel: any
   guild: Guild
   data: MonitorData
 
@@ -50,7 +50,7 @@ export default class Monitor {
     // split into multiple messages if there are too many items
     while (fields.length > 0) {
       const message = new EmbedBuilder().setTitle('Hints').addFields(fields.splice(0, 25)).data
-      this.channel.send({ embeds: [message] })
+      this.channel.send({ embeds: [message] }).catch(console.error)
     }
 
     const items = this.queue.items.map((message, index) => ({ name: `#${index + 1}`, value: message }))
@@ -58,22 +58,27 @@ export default class Monitor {
     // split into multiple messages if there are too many items
     while (items.length > 0) {
       const message = new EmbedBuilder().setTitle('Items').addFields(items.splice(0, 25)).data
-      this.channel.send({ embeds: [message] })
+      this.channel.send({ embeds: [message] }).catch(console.error)
     }
   }
 
   send (message: string) {
     // make an embed for the message
     const embed = new EmbedBuilder().setDescription(message).setTitle('Archipelago')
-    this.channel.send({ embeds: [embed.data] })
+    this.channel.send({ embeds: [embed.data] }).catch(console.error)
   }
 
   constructor (client: Client<SlotData>, monitorData: MonitorData, discordClient: DiscordClient) {
     this.client = client
     this.data = monitorData
 
-    this.channel = discordClient.channels.cache.get(monitorData.channel) as TextBasedChannel
-    this.guild = (discordClient.channels.cache.get(monitorData.channel) as GuildChannel).guild
+    const channel = discordClient.channels.cache.get(monitorData.channel)
+    if (!channel || !channel.isTextBased() || !(channel instanceof GuildChannel)) {
+      throw new Error(`Channel ${monitorData.channel} not found, is not text-based, or is not a guild channel.`)
+    }
+
+    this.channel = channel
+    this.guild = channel.guild
 
     client.addListener(SERVER_PACKET_TYPE.CONNECTION_REFUSED, this.onDisconnect.bind(this))
     client.addListener(SERVER_PACKET_TYPE.PRINT_JSON, this.onJSON.bind(this))
@@ -111,7 +116,7 @@ export default class Monitor {
         if (packet.tags.includes('IgnoreGame')) {
           this.send(`A tracker for **${this.client.players.get(packet.slot)?.name}** has joined the game!`)
           return
-        };;
+        }
 
         this.send(`**${this.client.players.get(packet.slot)?.name}** (${this.client.players.get(packet.slot)?.game}) joined the game!`)
         break

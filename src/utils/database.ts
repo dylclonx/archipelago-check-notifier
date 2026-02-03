@@ -18,7 +18,11 @@ async function migrate (): Promise<void> {
 }
 
 async function createLog (guildId: string, userId: string, action: string) {
-  await pool.query('INSERT INTO activity_log (guild_id, user_id, action, timestamp) VALUES (?, ?, ?, NOW())', [guildId, userId, action])
+  try {
+    await pool.query('INSERT INTO activity_log (guild_id, user_id, action, timestamp) VALUES (?, ?, ?, NOW())', [guildId, userId, action])
+  } catch (err) {
+    console.error('Failed to create log:', err)
+  }
 }
 
 async function getConnections (): Promise<Connection[]> {

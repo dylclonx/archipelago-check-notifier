@@ -23,7 +23,10 @@ function make (data: MonitorData, client: DiscordClient): Promise<Monitor> {
       Database.createLog(monitor.guild.id, '0', `Connected to ${data.host}:${data.port}`)
       monitors.push(monitor)
       resolve(monitor)
-    }).catch((err) => { console.log(err) })
+    }).catch((err) => {
+      console.log(err)
+      reject(err)
+    })
   })
 }
 

@@ -12,7 +12,7 @@ const debugCommandList: Command[] = [
 
 ]
 
-function Init (client: Client) {
+async function Init (client: Client) {
   commandList.push(new PingCommand(client))
   commandList.push(new MonitorCommand(client))
   commandList.push(new UnmonitorCommand(client))
@@ -20,19 +20,20 @@ function Init (client: Client) {
   if (client.token == null || client.application == null) return
 
   restClient = new REST({ version: '10' }).setToken(client.token)
-  restClient.put(Routes.applicationCommands(client.application?.id), { body: [] })
 
   // Register slash commands with Discord.js rest
-  restClient.put(Routes.applicationGuildCommands(client.application?.id, process.env.GUILD_ID), { body: GetDebugCommands() })
-  restClient.put(Routes.applicationCommands(client.application?.id), { body: GetCommands() })
+  if (process.env.GUILD_ID) {
+    await restClient.put(Routes.applicationGuildCommands(client.application?.id, process.env.GUILD_ID), { body: GetDebugCommands() })
+  }
+  await restClient.put(Routes.applicationCommands(client.application?.id), { body: GetCommands() })
 }
 
 function GetCommands () {
-  return commandList.map(command => ({ name: command.name, description: command.name, options: command.options }))
+  return commandList.map(command => ({ name: command.name, description: command.description, options: command.options }))
 }
 
 function GetDebugCommands () {
-  return debugCommandList.map(command => ({ name: command.name, description: command.name, options: command.options }))
+  return debugCommandList.map(command => ({ name: command.name, description: command.description, options: command.options }))
 }
 
 function Autocomplete (interaction: AutocompleteInteraction) {
@@ -46,7 +47,9 @@ function Execute (interaction: CommandInteraction) {
   const command = commandList.find(command => command.name === interaction.commandName)
   if (command == null) return
 
-  command.execute(interaction)
+  if (interaction.isChatInputCommand()) {
+    command.execute(interaction)
+  }
 }
 
 const Commands = {

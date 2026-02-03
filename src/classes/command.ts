@@ -1,4 +1,4 @@
-import { ApplicationCommandOption, AutocompleteInteraction, Client, CommandInteraction } from 'discord.js'
+import { ApplicationCommandOption, AutocompleteInteraction, ChatInputCommandInteraction, Client } from 'discord.js'
 
 export default class Command {
   name: string
@@ -7,7 +7,7 @@ export default class Command {
 
   client: Client
 
-  execute (interaction: CommandInteraction) {
+  execute (interaction: ChatInputCommandInteraction) {
     console.log('Command executed')
   }
 

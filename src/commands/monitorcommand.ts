@@ -1,5 +1,5 @@
 import Command from '../classes/command'
-import { ApplicationCommandOption, ApplicationCommandOptionType, ChannelType, CommandInteraction, TextBasedChannel } from 'discord.js'
+import { ApplicationCommandOption, ApplicationCommandOptionType, ChannelType, ChatInputCommandInteraction } from 'discord.js'
 import MonitorData from '../classes/monitordata'
 import Monitors from '../utils/monitors'
 import Database from '../utils/database'
@@ -21,16 +21,17 @@ export default class MonitorCommand extends Command {
     this.client = client
   }
 
-  validate (interaction: CommandInteraction) {
-    // test data 2 for proper URL
-    const host = interaction.options.data[0].value as string
+  validate (interaction: ChatInputCommandInteraction) {
+    const host = interaction.options.getString('host', true)
 
     // regex for domain or IP address - eg. archipelago.gg
     const hostRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/
-    if (!hostRegex.test(host)) { interaction.reply('Invalid host name format. Please use domain name (e.g: archipelago.gg)'); return false }
+    if (!hostRegex.test(host)) {
+      interaction.reply({ content: 'Invalid host name format. Please use domain name (e.g: archipelago.gg)', ephemeral: true })
+      return false
+    }
 
-    // test data 4 for proper channel
-    const channel = interaction.options.data[4].channel
+    const channel = interaction.options.getChannel('channel', true)
     if (channel == null) return false
 
     // Only add to channels in this guild
@@ -39,30 +40,37 @@ export default class MonitorCommand extends Command {
     return true
   }
 
-  execute (interaction: CommandInteraction) {
+  execute (interaction: ChatInputCommandInteraction) {
     // Validate text input.
     if (!this.validate(interaction)) return
 
-    // Only allow one monitor per host
-    if (Monitors.has(`${interaction.options.data[2].value}:${interaction.options.data[3].value}` as string)) {
+    const monitorData: MonitorData = {
+      game: interaction.options.getString('game', true),
+      player: interaction.options.getString('player', true),
+      host: interaction.options.getString('host', true),
+      port: interaction.options.getInteger('port', true),
+      channel: interaction.options.getChannel('channel', true).id
+    }
+
+    // Only allow one monitor per host/port/player combo
+    if (Monitors.has(`${monitorData.host}:${monitorData.port}`)) {
       return interaction.reply({ content: 'Already monitoring that host!', ephemeral: true })
     }
 
-    const monitorData: MonitorData = {
-      game: interaction.options.get('game', true).value as string,
-      player: interaction.options.get('player', true).value as string,
-      host: interaction.options.get('host', true).value as string,
-      port: interaction.options.get('port', true).value as number,
-      channel: interaction.options.get('channel', true).channel?.id as string
-    }
-
     // Send a message to the channel to confirm the monitor has been added.
-    const textChannel: TextBasedChannel = this.client.channels.cache.get(monitorData.channel) as TextBasedChannel
-    textChannel.send('This monitor will now track Archipelago on this channel.')
+    const textChannel = this.client.channels.cache.get(monitorData.channel)
+    if (textChannel?.isTextBased()) {
+      (textChannel as any).send('This monitor will now track Archipelago on this channel.').catch(console.error)
+    } else {
+      return interaction.reply({ content: 'Could not find the specified channel in cache or it is not text-based.', ephemeral: true })
+    }
 
     // Make the monitor and save it
     Monitors.make(monitorData, this.client).then(() => {
       Database.makeConnection(monitorData)
+    }).catch(err => {
+      console.error('Failed to create monitor:', err)
+      interaction.followUp({ content: 'Failed to connect to Archipelago. Please check host and port.', ephemeral: true })
     })
 
     interaction.reply({ content: `Now monitoring Archipelago on ${monitorData.host}:${monitorData.port}.`, ephemeral: true })

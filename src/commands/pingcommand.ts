@@ -1,5 +1,5 @@
 import Command from '../classes/command'
-import { ApplicationCommandOption, CommandInteraction } from 'discord.js'
+import { ApplicationCommandOption, ChatInputCommandInteraction } from 'discord.js'
 
 export default class PingCommand extends Command {
   name = 'ping'
@@ -12,7 +12,7 @@ export default class PingCommand extends Command {
     this.client = client
   }
 
-  execute (interaction: CommandInteraction) {
+  execute (interaction: ChatInputCommandInteraction) {
     interaction.reply({ content: 'Pong!', ephemeral: true })
   }
 }
