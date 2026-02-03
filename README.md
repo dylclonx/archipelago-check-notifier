@@ -269,7 +269,10 @@ Once deployed, the bot provides these slash commands:
 │   │   └── monitordata.ts# Monitor data structure
 │   ├── commands/
 │   │   ├── monitorcommand.ts   # /monitor slash command
-│   │   └── unmonitorcommand.ts # /unmonitor slash command
+│   │   ├── unmonitorcommand.ts # /unmonitor slash command
+│   │   ├── linkcommand.ts      # /link slash command
+│   │   ├── unlinkcommand.ts    # /unlink slash command
+│   │   └── linkscommand.ts     # /links slash command
 │   └── utils/
 │       └── database.ts   # MySQL database operations
 ├── tsconfig.json         # TypeScript configuration

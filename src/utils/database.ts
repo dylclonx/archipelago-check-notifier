@@ -15,6 +15,20 @@ const pool = mysql.createPool({
 async function migrate (): Promise<void> {
   await pool.query('CREATE TABLE IF NOT EXISTS connections (id INT AUTO_INCREMENT PRIMARY KEY, host VARCHAR(255), port INT, game VARCHAR(255), player VARCHAR(255), channel VARCHAR(255))')
   await pool.query('CREATE TABLE IF NOT EXISTS activity_log (id INT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(255), user_id VARCHAR(255), action VARCHAR(255), timestamp DATETIME)')
+  await pool.query('CREATE TABLE IF NOT EXISTS user_links (id INT AUTO_INCREMENT PRIMARY KEY, guild_id VARCHAR(255), archipelago_name VARCHAR(255), discord_id VARCHAR(255), UNIQUE KEY (guild_id, archipelago_name))')
+}
+
+async function linkUser (guildId: string, archipelagoName: string, discordId: string) {
+  await pool.query('INSERT INTO user_links (guild_id, archipelago_name, discord_id) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE discord_id = ?', [guildId, archipelagoName, discordId, discordId])
+}
+
+async function unlinkUser (guildId: string, archipelagoName: string) {
+  await pool.query('DELETE FROM user_links WHERE guild_id = ? AND archipelago_name = ?', [guildId, archipelagoName])
+}
+
+async function getLinks (guildId: string): Promise<any[]> {
+  const [rows] = await pool.query('SELECT archipelago_name, discord_id FROM user_links WHERE guild_id = ?', [guildId])
+  return rows as any[]
 }
 
 async function createLog (guildId: string, userId: string, action: string) {
@@ -43,7 +57,10 @@ const Database = {
   makeConnection,
   removeConnection,
   createLog,
-  migrate
+  migrate,
+  linkUser,
+  unlinkUser,
+  getLinks
 }
 
 export default Database

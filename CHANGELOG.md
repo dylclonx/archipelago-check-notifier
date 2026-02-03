@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-02
+
+### Added
+- Player linking functionality: Link Discord users to Archipelago player names to receive @mentions in notifications.
+- New slash commands:
+    - `/link` - Associate an Archipelago player name with a Discord user.
+    - `/unlink` - Remove a link.
+    - `/links` - List all active links in the server.
+- Mention collection logic: The bot now extracts Discord mentions from notification text and includes them in the message content to ensure users are actually pinged (as mentions inside embeds do not trigger pings).
+
+### Changed
+- Refactored `Monitor` class to support asynchronous lookups for player links.
+
 ## [1.1.3] - 2026-02-02
 
 ### Fixed

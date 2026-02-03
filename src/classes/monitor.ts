@@ -2,6 +2,7 @@ import { EmbedBuilder, Guild, Client as DiscordClient, GuildChannel } from 'disc
 import { Client, CollectJSONPacket, HintJSONPacket, ITEMS_HANDLING_FLAGS, ItemSendJSONPacket, PrintJSONPacket, SERVER_PACKET_TYPE, SlotData } from 'archipelago.js'
 import MonitorData from './monitordata'
 import RandomHelper from '../utils/randohelper'
+import Database from '../utils/database'
 
 export default class Monitor {
   client: Client<SlotData>
@@ -16,11 +17,16 @@ export default class Monitor {
     items: [] as string[]
   }
 
-  convertData (message: ItemSendJSONPacket | CollectJSONPacket | HintJSONPacket) {
+  convertData (message: ItemSendJSONPacket | CollectJSONPacket | HintJSONPacket, linkMap: Map<string, string>) {
     return message.data.map((slot) => {
       switch (slot.type) {
-        case 'player_id':
-          return `**${this.client.players.get(parseInt(slot.text))?.name}**`
+        case 'player_id': {
+          const playerName = this.client.players.get(parseInt(slot.text))?.name
+          if (playerName && linkMap.has(playerName)) {
+            return `<@${linkMap.get(playerName)}>`
+          }
+          return `**${playerName}**`
+        }
         case 'item_id':
           return `*${RandomHelper.getItem(this.client, slot.player, parseInt(slot.text), slot.flags)}*`
         case 'location_id':
@@ -45,27 +51,58 @@ export default class Monitor {
   }
 
   sendQueue () {
-    const fields = this.queue.hints.map((message, index) => ({ name: `#${index + 1}`, value: message }))
+    const hints = this.queue.hints.map((message, index) => ({ name: `#${index + 1}`, value: message }))
     this.queue.hints = []
     // split into multiple messages if there are too many items
-    while (fields.length > 0) {
-      const message = new EmbedBuilder().setTitle('Hints').addFields(fields.splice(0, 25)).data
-      this.channel.send({ embeds: [message] }).catch(console.error)
+    while (hints.length > 0) {
+      const batch = hints.splice(0, 25)
+      const mentions = new Set<string>()
+      const regex = /<@(\d+)>/g
+      batch.forEach(f => {
+        let match
+        while ((match = regex.exec(f.value)) !== null) {
+          mentions.add(match[1])
+        }
+      })
+
+      const content = mentions.size > 0 ? Array.from(mentions).map(id => `<@${id}>`).join(' ') : undefined
+      const embed = new EmbedBuilder().setTitle('Hints').addFields(batch).data
+      this.channel.send({ content, embeds: [embed] }).catch(console.error)
     }
 
     const items = this.queue.items.map((message, index) => ({ name: `#${index + 1}`, value: message }))
     this.queue.items = []
     // split into multiple messages if there are too many items
     while (items.length > 0) {
-      const message = new EmbedBuilder().setTitle('Items').addFields(items.splice(0, 25)).data
-      this.channel.send({ embeds: [message] }).catch(console.error)
+      const batch = items.splice(0, 25)
+      const mentions = new Set<string>()
+      const regex = /<@(\d+)>/g
+      batch.forEach(f => {
+        let match
+        while ((match = regex.exec(f.value)) !== null) {
+          mentions.add(match[1])
+        }
+      })
+
+      const content = mentions.size > 0 ? Array.from(mentions).map(id => `<@${id}>`).join(' ') : undefined
+      const embed = new EmbedBuilder().setTitle('Items').addFields(batch).data
+      this.channel.send({ content, embeds: [embed] }).catch(console.error)
     }
   }
 
   send (message: string) {
     // make an embed for the message
     const embed = new EmbedBuilder().setDescription(message).setTitle('Archipelago')
-    this.channel.send({ embeds: [embed.data] }).catch(console.error)
+
+    const mentions = new Set<string>()
+    const regex = /<@(\d+)>/g
+    let match
+    while ((match = regex.exec(message)) !== null) {
+      mentions.add(match[1])
+    }
+
+    const content = mentions.size > 0 ? Array.from(mentions).map(id => `<@${id}>`).join(' ') : undefined
+    this.channel.send({ content, embeds: [embed.data] }).catch(console.error)
   }
 
   constructor (client: Client<SlotData>, monitorData: MonitorData, discordClient: DiscordClient) {
@@ -102,27 +139,38 @@ export default class Monitor {
   }
 
   // When a message is received from the server
-  onJSON (packet: PrintJSONPacket) {
+  async onJSON (packet: PrintJSONPacket) {
+    const links = await Database.getLinks(this.guild.id)
+    const linkMap = new Map<string, string>(links.map(l => [l.archipelago_name, l.discord_id]))
+
+    const formatPlayer = (slot: number) => {
+      const playerName = this.client.players.get(slot)?.name
+      if (playerName && linkMap.has(playerName)) {
+        return `<@${linkMap.get(playerName)}>`
+      }
+      return `**${playerName}**`
+    }
+
     switch (packet.type) {
       case 'Collect':
       case 'ItemSend':
-        this.addQueue(this.convertData(packet), 'items')
+        this.addQueue(this.convertData(packet, linkMap), 'items')
         break
       case 'Hint':
-        this.addQueue(this.convertData(packet), 'hints')
+        this.addQueue(this.convertData(packet, linkMap), 'hints')
         break
       case 'Join':
         // Overrides for special join messages
         if (packet.tags.includes('Monitor')) return
         if (packet.tags.includes('IgnoreGame')) {
-          this.send(`A tracker for **${this.client.players.get(packet.slot)?.name}** has joined the game!`)
+          this.send(`A tracker for ${formatPlayer(packet.slot)} has joined the game!`)
           return
         }
 
-        this.send(`**${this.client.players.get(packet.slot)?.name}** (${this.client.players.get(packet.slot)?.game}) joined the game!`)
+        this.send(`${formatPlayer(packet.slot)} (${this.client.players.get(packet.slot)?.game}) joined the game!`)
         break
       case 'Part':
-        this.send(`**${this.client.players.get(packet.slot)?.name}** (${this.client.players.get(packet.slot)?.game}) left the game!`)
+        this.send(`${formatPlayer(packet.slot)} (${this.client.players.get(packet.slot)?.game}) left the game!`)
         break
     }
   }
