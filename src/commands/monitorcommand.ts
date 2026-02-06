@@ -76,8 +76,8 @@ export default class MonitorCommand extends Command {
     }
 
     // Make the monitor and save it
-    Monitors.make(monitorData, this.client).then(() => {
-      Database.makeConnection(monitorData)
+    Monitors.make(monitorData, this.client).then(async (monitor) => {
+      monitor.data.id = await Database.makeConnection(monitorData)
     }).catch(err => {
       console.error('Failed to create monitor:', err)
       interaction.followUp({ content: 'Failed to connect to Archipelago. Please check host and port.', flags: [MessageFlags.Ephemeral] })

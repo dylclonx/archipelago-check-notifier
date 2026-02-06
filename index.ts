@@ -1,4 +1,4 @@
-import { Client, Events, InteractionType, MessageFlags } from 'discord.js'
+import { Client, Events, InteractionType, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js'
 import Commands from './src/commands'
 import Database from './src/utils/database'
 import Monitors from './src/utils/monitors'
@@ -28,6 +28,20 @@ client.on(Events.ClientReady, async () => {
     for (const result of connections) {
       Monitors.make(result, client).catch(err => {
         console.error(`Failed to reconnect to monitor ${result.host}:${result.port}:`, err)
+        const channel = client.channels.cache.get(result.channel)
+        if (channel?.isTextBased()) {
+          const embed = new EmbedBuilder()
+            .setTitle('Archipelago')
+            .setDescription(`Failed to reconnect to monitor ${result.host}:${result.port} on startup.`)
+          const row = new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+              new ButtonBuilder()
+                .setCustomId(`remonitor:${result.id}`)
+                .setLabel('Re-monitor')
+                .setStyle(ButtonStyle.Primary)
+            )
+          ;(channel as any).send({ embeds: [embed], components: [row] }).catch(console.error)
+        }
       })
     }
   } catch (err) {
@@ -37,6 +51,29 @@ client.on(Events.ClientReady, async () => {
 
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
+    if (interaction.isButton()) {
+      if (interaction.customId.startsWith('remonitor:')) {
+        const connectionId = parseInt(interaction.customId.split(':')[1])
+        const connection = await Database.getConnection(connectionId)
+        if (!connection) {
+          return interaction.reply({ content: 'Monitor configuration not found in database.', flags: [MessageFlags.Ephemeral] })
+        }
+
+        if (Monitors.has(`${connection.host}:${connection.port}`)) {
+          Monitors.remove(`${connection.host}:${connection.port}`, false)
+        }
+
+        await interaction.deferReply({ flags: [MessageFlags.Ephemeral] })
+        Monitors.make(connection, client).then(() => {
+          interaction.editReply({ content: `Now monitoring Archipelago on ${connection.host}:${connection.port}.` })
+        }).catch(err => {
+          console.error('Failed to create monitor:', err)
+          interaction.editReply({ content: 'Failed to connect to Archipelago. Please check if the server is up.' })
+        })
+      }
+      return
+    }
+
     switch (interaction.type) {
       case InteractionType.ApplicationCommandAutocomplete:
         Commands.Autocomplete(interaction)

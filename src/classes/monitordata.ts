@@ -1,4 +1,5 @@
 export default class MonitorData {
+  id?: number
   host: string
   port: number
   game: string

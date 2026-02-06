@@ -122,9 +122,23 @@ async function getConnections (): Promise<Connection[]> {
   }))
 }
 
-async function makeConnection (data: MonitorData): Promise<void> {
-  await pool.query('INSERT INTO connections (host, port, game, player, channel, mention_join_leave, mention_item_finder, mention_item_receiver, mention_completion, mention_hints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+async function getConnection (id: number): Promise<Connection | null> {
+  const [rows] = await pool.query('SELECT * FROM connections WHERE id = ?', [id])
+  const connections = (rows as any[]).map(row => ({
+    ...row,
+    mention_join_leave: !!row.mention_join_leave,
+    mention_item_finder: !!row.mention_item_finder,
+    mention_item_receiver: !!row.mention_item_receiver,
+    mention_completion: !!row.mention_completion,
+    mention_hints: !!row.mention_hints
+  }))
+  return connections.length > 0 ? connections[0] : null
+}
+
+async function makeConnection (data: MonitorData): Promise<number> {
+  const [result]: any = await pool.query('INSERT INTO connections (host, port, game, player, channel, mention_join_leave, mention_item_finder, mention_item_receiver, mention_completion, mention_hints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [data.host, data.port, data.game, data.player, data.channel, data.mention_join_leave, data.mention_item_finder, data.mention_item_receiver, data.mention_completion, data.mention_hints])
+  return result.insertId
 }
 
 async function removeConnection (monitor: Monitor) {
@@ -133,6 +147,7 @@ async function removeConnection (monitor: Monitor) {
 
 const Database = {
   getConnections,
+  getConnection,
   makeConnection,
   removeConnection,
   createLog,

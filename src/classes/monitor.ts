@@ -1,4 +1,4 @@
-import { EmbedBuilder, Guild, Client as DiscordClient, GuildChannel } from 'discord.js'
+import { EmbedBuilder, Guild, Client as DiscordClient, GuildChannel, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js'
 import { Client, CollectJSONPacket, HintJSONPacket, ITEMS_HANDLING_FLAGS, ItemSendJSONPacket, PrintJSONPacket, SERVER_PACKET_TYPE, SlotData } from 'archipelago.js'
 import MonitorData from './monitordata'
 import RandomHelper from '../utils/randohelper'
@@ -107,7 +107,7 @@ export default class Monitor {
     }
   }
 
-  send (message: string) {
+  send (message: string, components?: any[]) {
     // make an embed for the message
     const embed = new EmbedBuilder().setDescription(message).setTitle('Archipelago')
 
@@ -119,7 +119,7 @@ export default class Monitor {
     }
 
     const content = mentions.size > 0 ? Array.from(mentions).map(id => `<@${id}>`).join(' ') : undefined
-    this.channel.send({ content, embeds: [embed.data] }).catch(console.error)
+    this.channel.send({ content, embeds: [embed.data], components }).catch(console.error)
   }
 
   constructor (client: Client<SlotData>, monitorData: MonitorData, discordClient: DiscordClient) {
@@ -139,7 +139,15 @@ export default class Monitor {
   }
 
   onDisconnect () {
-    this.send('Disconnected from the server.')
+    const row = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId(`remonitor:${this.data.id}`)
+          .setLabel('Re-monitor')
+          .setStyle(ButtonStyle.Primary)
+      )
+
+    this.send('Disconnected from the server.', [row])
 
     if (this.isReconnecting) return
     this.isReconnecting = true

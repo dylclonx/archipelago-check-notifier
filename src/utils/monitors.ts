@@ -31,12 +31,14 @@ function make (data: MonitorData, client: DiscordClient): Promise<Monitor> {
   })
 }
 
-function remove (host: string) {
+function remove (host: string, removeFromDb: boolean = true) {
   const monitor = monitors.find((monitor) => monitor.client.uri?.includes(host))
   if (monitor == null) return
   monitors.splice(monitors.indexOf(monitor), 1)
   monitor.client.disconnect()
-  Database.removeConnection(monitor)
+  if (removeFromDb) {
+    Database.removeConnection(monitor)
+  }
   Database.createLog(monitor.guild.id, '0', `Disconnected from ${monitor.data.host}:${monitor.data.port}`)
 }
 
