@@ -11,6 +11,17 @@ export default class Monitor {
   data: MonitorData
 
   isReconnecting: boolean
+  isActive: boolean = true
+  reconnectTimeout: any = null
+
+  stop () {
+    this.isActive = false
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout)
+      this.reconnectTimeout = null
+    }
+    this.client.disconnect()
+  }
 
   queue = {
     hints: [] as string[],
@@ -135,10 +146,14 @@ export default class Monitor {
     this.guild = channel.guild
 
     client.addListener(SERVER_PACKET_TYPE.CONNECTION_REFUSED, this.onDisconnect.bind(this))
+    ;(client as any).on?.('disconnected', this.onDisconnect.bind(this))
     client.addListener(SERVER_PACKET_TYPE.PRINT_JSON, this.onJSON.bind(this))
   }
 
   onDisconnect () {
+    if (!this.isActive || this.isReconnecting) return
+    this.isReconnecting = true
+
     const row = new ActionRowBuilder<ButtonBuilder>()
       .addComponents(
         new ButtonBuilder()
@@ -149,10 +164,12 @@ export default class Monitor {
 
     this.send('Disconnected from the server.', [row])
 
-    if (this.isReconnecting) return
-    this.isReconnecting = true
+    this.reconnect()
+  }
 
-    // try to reconnect every 5 minutes
+  reconnect () {
+    if (!this.isActive) return
+
     this.client.connect({
       game: this.data.game,
       hostname: this.data.host,
@@ -160,11 +177,20 @@ export default class Monitor {
       name: this.data.player,
       items_handling: ITEMS_HANDLING_FLAGS.REMOTE_ALL,
       version: { major: 0, minor: 5, build: 0 }
-    }).then(() => { this.isReconnecting = false }).catch(() => { setTimeout(() => { this.isReconnecting = false; this.onDisconnect() }, 300000) })
+    }).then(() => {
+      this.isReconnecting = false
+    }).catch(() => {
+      if (!this.isActive) return
+      this.reconnectTimeout = setTimeout(() => {
+        this.reconnectTimeout = null
+        this.reconnect()
+      }, 300000)
+    })
   }
 
   // When a message is received from the server
   async onJSON (packet: PrintJSONPacket) {
+    if (!this.isActive) return
     const links = await Database.getLinks(this.guild.id)
     const linkMap = new Map<string, any>(links.map(l => [l.archipelago_name, l]))
 
@@ -194,8 +220,8 @@ export default class Monitor {
         break
       case 'Join':
         // Overrides for special join messages
-        if (packet.tags.includes('Monitor')) return
-        if (packet.tags.includes('IgnoreGame')) {
+        if (packet.tags?.includes('Monitor')) return
+        if (packet.tags?.includes('IgnoreGame')) {
           this.send(`A tracker for ${formatPlayer(packet.slot, this.data.mention_join_leave, 'mention_join_leave')} has joined the game!`)
           return
         }
@@ -203,6 +229,7 @@ export default class Monitor {
         this.send(`${formatPlayer(packet.slot, this.data.mention_join_leave, 'mention_join_leave')} (${this.client.players.get(packet.slot)?.game}) joined the game!`)
         break
       case 'Part':
+        if (packet.tags?.includes('Monitor')) return
         this.send(`${formatPlayer(packet.slot, this.data.mention_join_leave, 'mention_join_leave')} (${this.client.players.get(packet.slot)?.game}) left the game!`)
         break
       case 'Goal':

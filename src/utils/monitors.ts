@@ -31,19 +31,19 @@ function make (data: MonitorData, client: DiscordClient): Promise<Monitor> {
   })
 }
 
-function remove (host: string, removeFromDb: boolean = true) {
-  const monitor = monitors.find((monitor) => monitor.client.uri?.includes(host))
+function remove (uri: string, removeFromDb: boolean = true) {
+  const monitor = monitors.find((monitor) => monitor.client.uri?.includes(uri) || `${monitor.data.host}:${monitor.data.port}` === uri)
   if (monitor == null) return
   monitors.splice(monitors.indexOf(monitor), 1)
-  monitor.client.disconnect()
+  monitor.stop()
   if (removeFromDb) {
     Database.removeConnection(monitor)
   }
   Database.createLog(monitor.guild.id, '0', `Disconnected from ${monitor.data.host}:${monitor.data.port}`)
 }
 
-function has (host: string) {
-  return monitors.some((monitor) => monitor.client.uri?.includes(host))
+function has (uri: string) {
+  return monitors.some((monitor) => monitor.client.uri?.includes(uri) || `${monitor.data.host}:${monitor.data.port}` === uri)
 }
 
 function get (guild: string) {

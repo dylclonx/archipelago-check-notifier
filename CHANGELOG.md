@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] - 2026-02-06
+
+### Fixed
+- Resolved issue where the bot would spam "User left" messages upon disconnection or unmonitoring.
+- Fixed a bug where "ghost" monitors could remain active and continue posting to Discord after being removed.
+- Improved connection stability and error handling:
+    - Added an `isActive` flag to properly decommission monitors.
+    - Optimized reconnection logic to avoid duplicate "Disconnected" notifications.
+    - Added safe tag checking for Archipelago packets to prevent crashes on malformed data.
+- Prevented duplicate monitor creation during bot startup.
+
 ## [1.5.1] - 2026-02-06
 
 ### Changed
